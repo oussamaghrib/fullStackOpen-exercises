@@ -1,0 +1,9 @@
+browser->server: HTTP GET https://studies.cs.helsinki.fi/exampleapp/new_note_spa
+server-->browser: {"message":"note created"}
+
+
+note over browser:
+browser executes the event handler 
+that render the list of notes
+end note
+
