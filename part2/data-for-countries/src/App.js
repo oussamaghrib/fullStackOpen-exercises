@@ -7,6 +7,8 @@ function App() {
   const [matches, setMatches] = useState([]);
   const [visibilityState, setVisibilityState] = useState([]);
 
+  //envirement variable
+
   useEffect(() => {
     axios.get("https://restcountries.eu/rest/v2/all").then((res) => {
       setCountries(res.data);
@@ -18,7 +20,6 @@ function App() {
     const regex = new RegExp(e.target.value, "gmi");
     let allMatches = countries.filter((item) => item.name.match(regex));
     setMatches(allMatches);
-    allMatches = [];
     setVisibilityState(new Array(allMatches.length).fill(false));
   };
   // function that shows the country when clikcing on the "show" button
@@ -39,7 +40,11 @@ function App() {
             {matches.length > 10 ? (
               <div>too many cases</div>
             ) : matches.length === 1 ? (
-              <ShowACountry matches={matches} index={0}></ShowACountry>
+              <ShowACountry
+                matches={matches}
+                index={0}
+                capital={matches[0].capital}
+              ></ShowACountry>
             ) : matches.length <= 10 ? (
               <div>
                 {matches.map((item, index) => (
@@ -47,7 +52,6 @@ function App() {
                     <span> {item.name}</span> {"  "}
                     <button onClick={showCountry} value={index}>
                       show
-                      {console.log(visibilityState)}
                     </button>
                     <div
                       style={{
@@ -57,6 +61,7 @@ function App() {
                       <ShowACountry
                         matches={matches}
                         index={index}
+                        capital={matches[index].capital}
                       ></ShowACountry>
                     </div>
                   </div>
