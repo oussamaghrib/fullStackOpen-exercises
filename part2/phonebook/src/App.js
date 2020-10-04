@@ -16,7 +16,7 @@ const App = () => {
   const [query, setQuery] = useState("");
   const [searchValue, setSearchValue] = useState([]);
   const [notification, setNotification] = useState("");
-  const [errMsg, setErrMsg] = useState("");
+  const [errMsg, setErrMsg] = useState(false);
 
   // fetching the data from json-server (i,e: db.json)
   useEffect(() => {
@@ -28,46 +28,42 @@ const App = () => {
     const personsObject = { name: newName, number: newNumber };
 
     //checking if the name exists
+
     const nameChecker = persons.filter(
       (person) => person.name === personsObject.name
     );
-    console.log(errMsg);
     if (nameChecker.length > 0) {
-      const X = window.confirm(
-        `${personsObject.name} already exists do you want to update the number`
-      );
+      // updating the number if the user confirmed
 
-      if (X === true) {
-        // updating the number if the user confirmed
-        updatePerson(nameChecker, newNumber, setErrMsg);
-        const personsCopy = persons;
-        const index = personsCopy.indexOf(nameChecker[0]);
-        personsCopy[index] = {
-          id: personsCopy[index].id,
-          name: personsCopy[index].name,
-          number: newNumber,
-        };
+      updatePerson(nameChecker, newNumber)
+        .then((req) => {
+          const personsCopy = persons;
+          const index = personsCopy.indexOf(nameChecker[0]);
+          personsCopy[index] = {
+            ...req,
+          };
 
-        setPersons([...personsCopy]);
-        setNewName("");
-        setNewNumber("");
-        //the function the shows the notification for 5 seconds after the content was updated
-        const notificationSetter = () => {
-          let X = "";
-          if (errMsg.length > 0) {
-            X = `you can't update${nameChecker[0].name} because it doesn't exist anymore`;
-          } else {
-            X = `${nameChecker[0].name} was updated`;
-          }
-          setNotification(X);
+          setPersons([...personsCopy]);
+        })
+        .then(() => {
+          window.confirm(`you want to update ${nameChecker[0].name}`);
+        })
+        .then(() => setNotification(`${nameChecker[0].name} was updated`))
+        .catch(() => {
+          setErrMsg(true);
+          setNotification(
+            `you can't update ${nameChecker[0].name} because it doesn't exist anymore`
+          );
+        });
 
-          setTimeout(() => {
-            setNotification("");
-            setErrMsg("");
-          }, 5000);
-        };
-        notificationSetter();
-      }
+      setNewName("");
+      setNewNumber("");
+      //the function the shows the notification for 5 seconds after the content was updated
+
+      setTimeout(() => {
+        setNotification("");
+        setErrMsg(false);
+      }, 5000);
     } else {
       //adding a new user if the name was not already in the phonebook
       setPersons(persons.concat(personsObject));

@@ -7,13 +7,12 @@ const getPersons = () => {
 
 const addPerson = (person) => axios.post(URL, person);
 
-const updatePerson = (person, number, setErrMsg) => {
-  axios
-    .put(`${URL}/${person[0].id}`, {
-      name: person[0].name,
-      number,
-    })
-    .catch((err) => setErrMsg("err"));
+const updatePerson = (person, number) => {
+  const req = axios.put(`${URL}/${person[0].id}`, {
+    name: person[0].name,
+    number,
+  });
+  return req.then((res) => res.data);
 };
 
 const deletePerson = (person) => axios.delete(`${URL}/${person.id}`);
