@@ -6,6 +6,7 @@ function App() {
   const [countries, setCountries] = useState([]);
   const [matches, setMatches] = useState([]);
   const [visibilityState, setVisibilityState] = useState([]);
+  const [searchValue, setSearchValue] = useState("")
 
   //envirement variable
 
@@ -17,9 +18,17 @@ function App() {
 
   // search function
   const search = (e) => {
+    setSearchValue(e.target.value)
     const regex = new RegExp(e.target.value, "gmi");
     let allMatches = countries.filter((item) => item.name.match(regex));
-    setMatches(allMatches);
+    if (e.target.value.length === 0) {
+      setMatches([])
+    } else {
+      setMatches(allMatches);
+    }
+    
+    
+    
     setVisibilityState(new Array(allMatches.length).fill(false));
   };
   // function that shows the country when clikcing on the "show" button
@@ -32,14 +41,14 @@ function App() {
     <div>
       {countries.length === 0 ? (
         <p>the server is not sending data now, please wait a bit </p>
-      ) : (
+      ) :  (
         <div>
           <span>find a country</span>
-          <input placeholder="typea country name" onChange={search}></input>
+            <input placeholder="type a country name" onChange={search}></input>
+           
           <div>
-            {matches.length > 10 ? (
-              <div>too many cases</div>
-            ) : matches.length === 1 ? (
+              {
+                 matches.length === 1 ? (
               <ShowACountry
                 matches={matches}
                 index={0}
@@ -67,7 +76,9 @@ function App() {
                   </div>
                 ))}{" "}
               </div>
-            ) : null}
+            ) : matches.length > 10 ? (
+              <div>either no country matches your search or there are too many results</div>
+            ) : searchValue.length === 0? "": ""}
           </div>{" "}
         </div>
       )}
