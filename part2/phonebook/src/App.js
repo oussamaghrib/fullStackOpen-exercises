@@ -1,136 +1,124 @@
 import React, { useState, useEffect } from "react";
-import {
-  getPersons,
-  addPerson,
-  deletePerson,
-  updatePerson,
-} from "./services/persons";
+import Persons from "./components/Persons";
+import PersonForm from "./components/PersonForm";
+import Notification from "./components/Notification";
 import Filter from "./components/Filter";
-import Form from "./components/Form";
-import Phonebook from "./components/Phonebook";
-import PersonNotification from "./components/PersonNotification";
+import personService from "./services/persons";
+
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
-  const [query, setQuery] = useState("");
-  const [searchValue, setSearchValue] = useState([]);
-  const [notification, setNotification] = useState("");
-  const [errMsg, setErrMsg] = useState(false);
+  const [filterString, setStringFilter] = useState("");
+  const [notification, setNotification] = useState(null);
 
-  // fetching the data from json-server (i,e: db.json)
   useEffect(() => {
-    getPersons().then((res) => setPersons(res));
+    personService.getAll().then((data) => {
+      setPersons(data);
+    });
   }, []);
-  // function that fires after the submit
-  const personsAdder = (e) => {
-    e.preventDefault();
-    const personsObject = { name: newName, number: newNumber };
 
-    //checking if the name exists
+  const notifyWith = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
 
-    const nameChecker = persons.filter(
-      (person) => person.name === personsObject.name
-    );
-    if (nameChecker.length > 0) {
-      // updating the number if the user confirmed
+  const handleNameChange = (event) => {
+    setNewName(event.target.value);
+  };
 
-      updatePerson(nameChecker, newNumber)
-        .then((req) => {
-          const personsCopy = persons;
-          const index = personsCopy.indexOf(nameChecker[0]);
-          personsCopy[index] = {
-            ...req,
-          };
+  const handleNumberChange = (event) => {
+    setNewNumber(event.target.value);
+  };
 
-          setPersons([...personsCopy]);
+  const handleFilterStringChange = (event) => {
+    setStringFilter(event.target.value);
+  };
+
+  const deletePerson = (id) => {
+    const toDelete = persons.find((p) => p.id === id);
+    const ok = window.confirm(`Delete ${toDelete.name}`);
+    if (ok) {
+      personService
+        .remove(id)
+        .then((response) => {
+          setPersons(persons.filter((p) => p.id !== id));
+          notifyWith(`Deleted ${toDelete.name}`);
         })
-        .then(() => {
-          window.confirm(`you want to update ${nameChecker[0].name}`);
-        })
-        .then(() => setNotification(`${nameChecker[0].name} was updated`))
         .catch(() => {
-          setErrMsg(true);
-          setNotification(
-            `you can't update ${nameChecker[0].name} because it doesn't exist anymore`
-          );
+          setPersons(persons.filter((p) => p.id !== id));
+          notifyWith(`${toDelete.name} had already been removed`, "error");
         });
+    }
+  };
 
-      setNewName("");
-      setNewNumber("");
-      //the function the shows the notification for 5 seconds after the content was updated
-
-      setTimeout(() => {
-        setNotification("");
-        setErrMsg(false);
-      }, 5000);
+  const addPerson = (event) => {
+    event.preventDefault();
+    const existing = persons.find((p) => p.name === newName);
+    if (existing) {
+      const ok = window.confirm(
+        `${existing.name} already in phonebook, replace the old number with new one?`
+      );
+      if (ok) {
+        personService
+          .update(existing.id, {
+            name: existing.name,
+            number: newNumber,
+          })
+          .then((retunedPerson) => {
+            setPersons(
+              persons.map((person) =>
+                person.id !== existing.id ? person : retunedPerson
+              )
+            );
+            notifyWith(`Changed number of  ${existing.name}`);
+            setNewName("");
+            setNewNumber("");
+          });
+      }
     } else {
-      //adding a new user if the name was not already in the phonebook
-      setPersons(persons.concat(personsObject));
-      addPerson(personsObject);
-      setNewName("");
-      setNewNumber("");
-      //the function the shows the notification for 5 seconds after the content was added
-      const notificationSetter = () => {
-        setNotification(`${personsObject.name} was added`);
-        setTimeout(() => {
-          setNotification("");
-        }, 5000);
-      };
-      notificationSetter();
+      personService
+        .create({
+          name: newName,
+          number: newNumber,
+        })
+        .then((addedPerson) => {
+          setPersons(persons.concat(addedPerson));
+          notifyWith(`Added ${newName}`);
+          setNewName("");
+          setNewNumber("");
+        })
+        .catch((error) => {
+          notifyWith(`${error.response.data} `, "error");
+        });
     }
   };
 
-  //function that fires when writing a names
-  const nameAdder = (e) => {
-    setNewName(e.target.value);
-  };
+  const personsToShow =
+    filterString.length === 0
+      ? persons
+      : persons.filter(
+          (p) => p.name.toLowerCase().indexOf(filterString.toLowerCase()) > 0
+        );
 
-  //function that fires when writing a numbers
-  const numberAdder = (e) => {
-    setNewNumber(e.target.value);
-  };
-  // function that delete a person
-  const nameRemover = (item) => {
-    const X = window.confirm(
-      `do you really want to delete ${item.name} from your phonebook`
-    );
-    if (X === true) {
-      const personsCopy = persons.filter((el) => el !== item);
-      deletePerson(item);
-      setPersons([...personsCopy]);
-    }
-  };
-  //search logic
-  const searchFunction = (e) => {
-    setQuery(e.target.value);
-    let regularExp = new RegExp(query, "gmi");
-    const search = persons.filter((item) => item.name.match(regularExp));
-    e.target.value === "" ? setSearchValue([]) : setSearchValue(search);
-  };
   return (
     <div>
       <h2>Phonebook</h2>
-      <span>filter shown with </span>
-      <input placeholder="type a name here" onChange={searchFunction}></input>
-      <PersonNotification
-        notification={notification}
-        errMsg={errMsg}
-      ></PersonNotification>
+      <Notification notification={notification} />
+      filter shown with:
+      <Filter value={filterString} onChange={handleFilterStringChange} />
       <h3>add a new</h3>
-      <Form
-        personsAdder={personsAdder}
-        newName={newName}
+      <PersonForm
+        handleNameChange={handleNameChange}
+        handleNumberChange={handleNumberChange}
         newNumber={newNumber}
-        nameAdder={nameAdder}
-        numberAdder={numberAdder}
-      ></Form>
-
-      {query.length === 0 ? (
-        <Phonebook persons={persons} nameRemover={nameRemover}></Phonebook>
-      ) : (
-        <Filter searchValue={searchValue}></Filter>
-      )}
+        newName={newName}
+        addPerson={addPerson}
+      />
+      <h3>Numbers</h3>
+      <Persons persons={personsToShow} deletePerson={deletePerson} />
     </div>
   );
 };
